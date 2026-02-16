@@ -5,130 +5,341 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>사주 MVP2</title>
   <style>
-    * { box-sizing: border-box; }
+    :root{
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --text: #101828;
+      --sub: #667085;
+      --line: #e6e8f0;
+      --primary: #6d5efc;
+      --primary2: #37b3ff;
+      --chip: #f1f4ff;
+      --shadow: 0 10px 30px rgba(16,24,40,.08);
+      --radius: 18px;
+    }
+    *{ box-sizing:border-box; }
+    html, body{ width:100%; }
     body{
-      margin:0; padding:20px;
+      margin:0;
+      background: radial-gradient(900px 500px at 10% 0%, #eef0ff, transparent 60%),
+                  radial-gradient(900px 500px at 90% 10%, #e7f6ff, transparent 55%),
+                  var(--bg);
+      color: var(--text);
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      background: #0b1020; color: #fff;
+      padding: 18px;
     }
-    .wrap{ width:min(920px, 100%); margin:0 auto; display:grid; gap:14px; }
-    .card{
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
-      border-radius: 18px;
-      padding: 16px;
+    .wrap{ width:min(980px, 100%); margin:0 auto; display:grid; gap:14px; }
+    .topbar{
+      background: linear-gradient(135deg, rgba(109,94,252,.12), rgba(55,179,255,.10));
+      border: 1px solid rgba(109,94,252,.18);
+      border-radius: var(--radius);
+      padding: 14px 14px;
+      box-shadow: var(--shadow);
     }
-    h1{ margin:0 0 6px; font-size: clamp(22px, 4.5vw, 32px); }
-    .sub{ margin:0; color: rgba(255,255,255,.7); font-size: 14px; }
+    .title{ margin:0; font-size: clamp(20px, 3.2vw, 28px); letter-spacing:-.02em; }
+    .subtitle{ margin:6px 0 0; color: var(--sub); font-size: 14px; line-height:1.45; }
 
-    .grid{
-      display:grid; gap:10px;
-      grid-template-columns: 1fr 1fr;
+    .card{
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
     }
-    @media (max-width: 720px){
+    .card h2{
+      margin:0 0 10px;
+      font-size: 16px;
+      letter-spacing:-.01em;
+    }
+    .grid{
+      display:grid; gap:12px;
+      grid-template-columns: 1fr 1fr;
+      align-items: start;
+    }
+    @media (max-width: 820px){
       .grid{ grid-template-columns: 1fr; }
     }
 
-    label{ display:block; font-size: 13px; color: rgba(255,255,255,.75); margin-bottom:6px; }
-    input, select{
-      width:100%;
-      padding:12px 12px;
-      border-radius: 12px;
-      border:1px solid rgba(255,255,255,.16);
-      background: rgba(0,0,0,.25);
-      color:#fff;
-      outline:none;
-    }
+    /* ====== Picker (숫자 스크롤) ====== */
+    .pickerGroup{ display:grid; gap:8px; }
+    .labelRow{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .label{ font-size: 13px; color: var(--sub); }
+    .hint{ font-size: 12px; color: var(--sub); }
 
-    button{
-      width:100%;
-      padding:12px 14px;
+    .wheelRow{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+    .wheelRow.two{ grid-template-columns: 1fr 1fr; }
+    .wheel{
+      position: relative;
+      border: 1px solid var(--line);
       border-radius: 14px;
-      border:1px solid rgba(255,255,255,.18);
-      background: linear-gradient(135deg, rgba(255,120,170,.55), rgba(120,210,255,.45));
-      color:#fff;
-      font-weight: 800;
-      cursor:pointer;
+      background: #fff;
+      overflow: hidden;
+      height: 148px;
+    }
+    .wheel::before, .wheel::after{
+      content:"";
+      position:absolute; left:0; right:0;
+      height: 40px;
+      pointer-events:none;
+      z-index:2;
+    }
+    .wheel::before{
+      top:0;
+      background: linear-gradient(#fff, rgba(255,255,255,0));
+    }
+    .wheel::after{
+      bottom:0;
+      background: linear-gradient(rgba(255,255,255,0), #fff);
+    }
+    .wheelMid{
+      position:absolute; left:10px; right:10px;
+      top: 50%;
+      height: 38px;
+      transform: translateY(-50%);
+      border-radius: 12px;
+      background: rgba(109,94,252,.08);
+      border: 1px solid rgba(109,94,252,.18);
+      z-index:1;
+      pointer-events:none;
+    }
+    select.wheelSelect{
+      position:absolute; inset:0;
+      width:100%;
+      height:100%;
+      padding: 48px 10px;
+      border:0;
+      outline:none;
+      background: transparent;
+      appearance: none;
+      -webkit-appearance: none;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      text-align: center;
+      overflow-y: auto;
+    }
+    select.wheelSelect option{
+      font-size: 16px;
+      padding: 10px 0;
+      text-align:center;
+    }
+    .unit{
+      position:absolute;
+      right:10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 12px;
+      color: var(--sub);
+      z-index:3;
+      pointer-events:none;
     }
 
+    /* ====== Gender toggle ====== */
+    .toggleRow{ display:flex; gap:10px; }
+    .toggleBtn{
+      flex:1;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform .08s ease, border-color .08s ease, background .08s ease;
+    }
+    .toggleBtn:active{ transform: scale(.99); }
+    .toggleBtn.active{
+      border-color: rgba(109,94,252,.45);
+      background: rgba(109,94,252,.08);
+    }
+
+    /* ====== Buttons ====== */
+    .btnRow{ display:flex; gap:10px; flex-wrap:wrap; margin-top: 10px; }
+    .btn{
+      flex: 1;
+      min-width: 160px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(109,94,252,.22);
+      background: linear-gradient(135deg, rgba(109,94,252,.95), rgba(55,179,255,.85));
+      color:#fff;
+      font-weight: 900;
+      cursor:pointer;
+      box-shadow: 0 10px 22px rgba(109,94,252,.18);
+    }
+    .btn.secondary{
+      background: #fff;
+      color: var(--text);
+      border-color: var(--line);
+      box-shadow: none;
+    }
+    .muted{ margin:10px 0 0; color: var(--sub); font-size: 12px; line-height: 1.45; }
+    .error{ color:#d92d20; font-weight:800; }
+
+    /* ====== Result UI ====== */
     table{
       width:100%;
       border-collapse: collapse;
-      overflow:hidden;
+      border: 1px solid var(--line);
       border-radius: 14px;
-      border:1px solid rgba(255,255,255,.14);
+      overflow:hidden;
+      background: #fff;
     }
     th, td{
-      padding: 12px;
-      border-bottom:1px solid rgba(255,255,255,.10);
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--line);
       text-align:center;
+      font-weight: 800;
     }
-    th{ background: rgba(255,255,255,.06); color: rgba(255,255,255,.86); }
-    td{ color: rgba(255,255,255,.92); }
-
-    .badges{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-    .badge{
-      padding:8px 10px;
+    th{
+      font-size: 12px;
+      color: var(--sub);
+      background: #fafbff;
+      letter-spacing: .02em;
+    }
+    td{ font-size: 18px; }
+    .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top: 10px; }
+    .chip{
+      padding: 8px 10px;
       border-radius: 999px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
-      font-size: 13px;
-      color: rgba(255,255,255,.88);
+      background: var(--chip);
+      border: 1px solid rgba(109,94,252,.14);
+      color: #2a2f6f;
+      font-size: 12px;
+      font-weight: 800;
     }
 
     .tabs{ display:flex; gap:8px; flex-wrap:wrap; }
     .tab{
-      padding:10px 12px;
+      padding: 10px 12px;
       border-radius: 999px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
+      border:1px solid var(--line);
+      background: #fff;
       cursor:pointer;
-      font-weight:700;
-      color: rgba(255,255,255,.85);
+      font-weight: 900;
+      color: var(--sub);
     }
     .tab.active{
-      background: rgba(255,255,255,.16);
-      border-color: rgba(255,255,255,.22);
+      color: var(--text);
+      border-color: rgba(109,94,252,.35);
+      background: rgba(109,94,252,.06);
     }
-    .panel{ margin-top: 12px; line-height: 1.6; color: rgba(255,255,255,.9); }
-    .muted{ color: rgba(255,255,255,.7); font-size: 13px; }
-    .error{ color: #ffb4b4; font-weight: 700; }
+    .panel{
+      margin-top: 12px;
+      line-height: 1.65;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .panel h3{
+      margin: 14px 0 8px;
+      font-size: 14px;
+      letter-spacing: -.01em;
+    }
+    .panel ul{ margin: 8px 0 0 18px; padding:0; }
+    .panel li{ margin: 6px 0; color: #1f2937; }
+    .panel .small{ color: var(--sub); font-size: 12px; }
+
+    .footer{
+      text-align:center;
+      color: var(--sub);
+      font-size: 12px;
+      padding: 6px 0 2px;
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="card">
-      <h1>사주 MVP2</h1>
-      <p class="sub">요금 0원(브라우저에서 계산 + 룰 기반 해석). 기본 성향/직업운/연애·결혼운 제공</p>
+    <div class="topbar">
+      <h1 class="title">사주 MVP2</h1>
+      <p class="subtitle">
+        숫자 스크롤로 생년월일·시간 선택 → 4기둥 표 + 오행/음양/십신 요약 + (성향/직업/연애·결혼) 해석까지 한 화면에서 제공됩니다.<br>
+        ※ 외부 AI 호출 없이 브라우저에서만 동작(요금 0원).
+      </p>
     </div>
 
     <div class="card">
+      <h2>정보 입력</h2>
+
       <div class="grid">
-        <div>
-          <label>생년월일(양력)</label>
-          <input id="date" type="date" />
+        <!-- 생년월일 -->
+        <div class="pickerGroup">
+          <div class="labelRow">
+            <div class="label">생년월일(양력)</div>
+            <div class="hint">숫자 스크롤로 선택</div>
+          </div>
+
+          <div class="wheelRow">
+            <div class="wheel">
+              <div class="wheelMid"></div>
+              <select id="year" class="wheelSelect" aria-label="year"></select>
+              <div class="unit">년</div>
+            </div>
+            <div class="wheel">
+              <div class="wheelMid"></div>
+              <select id="month" class="wheelSelect" aria-label="month"></select>
+              <div class="unit">월</div>
+            </div>
+            <div class="wheel">
+              <div class="wheelMid"></div>
+              <select id="day" class="wheelSelect" aria-label="day"></select>
+              <div class="unit">일</div>
+            </div>
+          </div>
+
+          <p class="muted" id="dateMsg"></p>
         </div>
-        <div>
-          <label>출생시간(선택)</label>
-          <input id="time" type="time" />
-        </div>
-        <div>
-          <label>성별(선택)</label>
-          <select id="gender">
-            <option value="">선택 안 함</option>
-            <option value="F">여</option>
-            <option value="M">남</option>
-          </select>
-        </div>
-        <div style="display:grid; align-content:end;">
-          <button id="run">사주 계산 & 해석</button>
+
+        <!-- 출생시간 + 성별 -->
+        <div class="pickerGroup">
+          <div class="labelRow">
+            <div class="label">출생시간</div>
+            <div class="hint">모르면 “모름”으로 해석</div>
+          </div>
+
+          <div class="btnRow" style="margin-top:0;">
+            <button id="unknownTime" class="btn secondary" type="button">시간 모름</button>
+          </div>
+
+          <div class="wheelRow two" style="margin-top:10px;">
+            <div class="wheel">
+              <div class="wheelMid"></div>
+              <select id="hour" class="wheelSelect" aria-label="hour"></select>
+              <div class="unit">시</div>
+            </div>
+            <div class="wheel">
+              <div class="wheelMid"></div>
+              <select id="minute" class="wheelSelect" aria-label="minute"></select>
+              <div class="unit">분</div>
+            </div>
+          </div>
+
+          <div style="margin-top:12px;">
+            <div class="labelRow">
+              <div class="label">성별</div>
+              <div class="hint">버튼 선택</div>
+            </div>
+            <div class="toggleRow" style="margin-top:8px;">
+              <button id="gM" class="toggleBtn" type="button">남</button>
+              <button id="gF" class="toggleBtn" type="button">여</button>
+            </div>
+          </div>
+
+          <div class="btnRow">
+            <button id="run" class="btn" type="button">사주 계산 & 해석</button>
+            <button id="reset" class="btn secondary" type="button">초기화</button>
+          </div>
+
+          <p id="msg" class="muted"></p>
         </div>
       </div>
-      <p id="msg" class="muted" style="margin:10px 0 0;"></p>
     </div>
 
     <div class="card" id="resultCard" style="display:none;">
-      <h2 style="margin:0 0 10px; font-size:18px;">사주 4기둥</h2>
+      <h2>사주 4기둥</h2>
       <table>
         <thead>
           <tr>
@@ -141,209 +352,450 @@
           </tr>
         </tbody>
       </table>
-
-      <div class="badges" id="badges"></div>
-      <p class="muted" style="margin:10px 0 0;">
-        * 해석은 “AI 호출”이 아니라, 오행/음양/일간 중심의 룰 기반 템플릿으로 출력됩니다(요금 0원 유지 목적).
-      </p>
+      <div class="chips" id="chips"></div>
+      <p class="muted" id="techNote"></p>
     </div>
 
     <div class="card" id="interpretCard" style="display:none;">
+      <h2>해석</h2>
       <div class="tabs">
-        <div class="tab active" data-tab="personality">기본 성향/성격</div>
-        <div class="tab" data-tab="career">직업운</div>
-        <div class="tab" data-tab="love">연애·결혼운</div>
+        <button class="tab active" data-tab="personality" type="button">기본 성향/성격</button>
+        <button class="tab" data-tab="career" type="button">직업운</button>
+        <button class="tab" data-tab="love" type="button">연애·결혼운</button>
       </div>
       <div class="panel" id="panel"></div>
     </div>
+
+    <div class="footer">vibe coding • saju mvp2</div>
   </div>
 
   <script type="module">
-    // ✅ 사주 계산 라이브러리 (MIT) - 브라우저에서 불러오기
-    // manseryeok-js는 calculateSaju API를 제공하고, README에 MIT 라이선스를 표기합니다. :contentReference[oaicite:1]{index=1}
+    // 사주 계산(브라우저): manseryeok 계열 라이브러리로 4기둥 산출
+    // (외부 AI 호출 없음 → 요금 0원)
     import { calculateSaju } from "https://esm.sh/@fullstackfamily/manseryeok@1.0.5";
 
+    // ====== DOM ======
+    const yearEl = document.getElementById("year");
+    const monthEl = document.getElementById("month");
+    const dayEl = document.getElementById("day");
+    const hourEl = document.getElementById("hour");
+    const minEl = document.getElementById("minute");
+    const dateMsg = document.getElementById("dateMsg");
+
+    const unknownTimeBtn = document.getElementById("unknownTime");
+    const gM = document.getElementById("gM");
+    const gF = document.getElementById("gF");
+    const runBtn = document.getElementById("run");
+    const resetBtn = document.getElementById("reset");
     const msg = document.getElementById("msg");
+
     const resultCard = document.getElementById("resultCard");
     const interpretCard = document.getElementById("interpretCard");
     const panel = document.getElementById("panel");
-    const badgesEl = document.getElementById("badges");
+    const chipsEl = document.getElementById("chips");
+    const techNote = document.getElementById("techNote");
 
     const tabs = Array.from(document.querySelectorAll(".tab"));
-    let lastInterpretation = null;
-
-    const STEM_ELEMENT = {
-      "갑":"목","을":"목","병":"화","정":"화","무":"토","기":"토","경":"금","신":"금","임":"수","계":"수"
-    };
-    const STEM_YINYANG = {
-      "갑":"양","을":"음","병":"양","정":"음","무":"양","기":"음","경":"양","신":"음","임":"양","계":"음"
-    };
-    const BRANCH_ELEMENT = {
-      "자":"수","축":"토","인":"목","묘":"목","진":"토","사":"화","오":"화","미":"토","신":"금","유":"금","술":"토","해":"수"
-    };
-    const BRANCH_YINYANG = {
-      "자":"양","축":"음","인":"양","묘":"음","진":"양","사":"음","오":"양","미":"음","신":"양","유":"음","술":"양","해":"음"
+    let state = {
+      gender: "",        // "M" | "F" | ""
+      timeUnknown: false,
+      interpretation: null
     };
 
-    function splitPillar(p){
-      // 예: '경오' -> { stem:'경', branch:'오' }
-      return { stem: p?.[0] ?? "", branch: p?.[1] ?? "" };
+    // ====== Picker populate ======
+    function pad2(n){ return String(n).padStart(2, "0"); }
+    function setOptions(select, items, selectedValue){
+      select.innerHTML = "";
+      for (const it of items){
+        const opt = document.createElement("option");
+        opt.value = String(it.value);
+        opt.textContent = it.label;
+        if (String(it.value) === String(selectedValue)) opt.selected = true;
+        select.appendChild(opt);
+      }
     }
+    function daysInMonth(y, m){
+      // m: 1-12
+      return new Date(y, m, 0).getDate();
+    }
+
+    function initPickers(){
+      const now = new Date();
+      const curY = now.getFullYear();
+      const curM = now.getMonth() + 1;
+      const curD = now.getDate();
+
+      const years = [];
+      for (let y = 1900; y <= 2035; y++) years.push({ value: y, label: y });
+      setOptions(yearEl, years, curY);
+
+      const months = [];
+      for (let m = 1; m <= 12; m++) months.push({ value: m, label: pad2(m) });
+      setOptions(monthEl, months, curM);
+
+      refreshDays(curY, curM, curD);
+
+      const hours = [];
+      for (let h = 0; h <= 23; h++) hours.push({ value: h, label: pad2(h) });
+      setOptions(hourEl, hours, 12);
+
+      const mins = [];
+      for (let mm = 0; mm <= 59; mm++) mins.push({ value: mm, label: pad2(mm) });
+      setOptions(minEl, mins, 0);
+
+      updateDateMsg();
+      applyTimeUnknown(false); // 기본: 시간 알고 있음
+    }
+
+    function refreshDays(y, m, preferredDay){
+      const maxD = daysInMonth(y, m);
+      const d = Math.min(preferredDay ?? 1, maxD);
+      const days = [];
+      for (let i = 1; i <= maxD; i++) days.push({ value: i, label: pad2(i) });
+      setOptions(dayEl, days, d);
+    }
+
+    function updateDateMsg(){
+      const y = Number(yearEl.value);
+      const m = Number(monthEl.value);
+      const d = Number(dayEl.value);
+      dateMsg.textContent = `선택: ${y}-${pad2(m)}-${pad2(d)}`;
+    }
+
+    yearEl.addEventListener("change", ()=>{
+      refreshDays(Number(yearEl.value), Number(monthEl.value), Number(dayEl.value));
+      updateDateMsg();
+    });
+    monthEl.addEventListener("change", ()=>{
+      refreshDays(Number(yearEl.value), Number(monthEl.value), Number(dayEl.value));
+      updateDateMsg();
+    });
+    dayEl.addEventListener("change", updateDateMsg);
+
+    // ====== Time unknown toggle ======
+    function applyTimeUnknown(isUnknown){
+      state.timeUnknown = isUnknown;
+      unknownTimeBtn.textContent = isUnknown ? "시간 모름: ON" : "시간 모름";
+      unknownTimeBtn.style.borderColor = isUnknown ? "rgba(109,94,252,.35)" : "";
+      unknownTimeBtn.style.background = isUnknown ? "rgba(109,94,252,.06)" : "";
+      hourEl.disabled = isUnknown;
+      minEl.disabled = isUnknown;
+      hourEl.style.opacity = isUnknown ? .45 : 1;
+      minEl.style.opacity = isUnknown ? .45 : 1;
+    }
+    unknownTimeBtn.addEventListener("click", ()=>{
+      applyTimeUnknown(!state.timeUnknown);
+    });
+
+    // ====== Gender toggle ======
+    function setGender(g){
+      state.gender = g; // "M" | "F" | ""
+      gM.classList.toggle("active", g === "M");
+      gF.classList.toggle("active", g === "F");
+    }
+    gM.addEventListener("click", ()=> setGender(state.gender === "M" ? "" : "M"));
+    gF.addEventListener("click", ()=> setGender(state.gender === "F" ? "" : "F"));
+
+    // ====== 명리 기본: 오행/음양/십신 ======
+    // 오행/음양 기본 프레임(명리학 해석의 토대) :contentReference[oaicite:1]{index=1}
+    const STEM_ELEMENT = { "갑":"목","을":"목","병":"화","정":"화","무":"토","기":"토","경":"금","신":"금","임":"수","계":"수" };
+    const STEM_YY      = { "갑":"양","을":"음","병":"양","정":"음","무":"양","기":"음","경":"양","신":"음","임":"양","계":"음" };
+    const BRANCH_ELEMENT = { "자":"수","축":"토","인":"목","묘":"목","진":"토","사":"화","오":"화","미":"토","신":"금","유":"금","술":"토","해":"수" };
+    const BRANCH_YY      = { "자":"양","축":"음","인":"양","묘":"음","진":"양","사":"음","오":"양","미":"음","신":"양","유":"음","술":"양","해":"음" };
+
+    const GEN = { "목":"화","화":"토","토":"금","금":"수","수":"목" }; // 상생
+    const KEN = { "목":"토","토":"수","수":"화","화":"금","금":"목" }; // 상극(내가 극하는 대상)
+
+    function splitPillar(p){ return { stem: p?.[0] ?? "", branch: p?.[1] ?? "" }; }
 
     function summarizeElements(pillars){
       const counts = { "목":0,"화":0,"토":0,"금":0,"수":0 };
       const yy = { "양":0,"음":0 };
-
       for (const p of pillars){
         const {stem, branch} = splitPillar(p);
-        if (STEM_ELEMENT[stem]) counts[STEM_ELEMENT[stem]]++;
-        if (BRANCH_ELEMENT[branch]) counts[BRANCH_ELEMENT[branch]]++;
-        if (STEM_YINYANG[stem]) yy[STEM_YINYANG[stem]]++;
-        if (BRANCH_YINYANG[branch]) yy[BRANCH_YINYANG[branch]]++;
+        const se = STEM_ELEMENT[stem]; const be = BRANCH_ELEMENT[branch];
+        const sy = STEM_YY[stem];      const by = BRANCH_YY[branch];
+        if (se) counts[se]++; if (be) counts[be]++;
+        if (sy) yy[sy]++; if (by) yy[by]++;
       }
       return { counts, yy };
     }
-
-    function top2Elements(counts){
-      return Object.entries(counts)
-        .sort((a,b)=>b[1]-a[1])
-        .slice(0,2);
+    function topEntries(obj){
+      return Object.entries(obj).sort((a,b)=>b[1]-a[1]);
     }
 
-    function buildBadges(summary, dayStem){
-      badgesEl.innerHTML = "";
-      const [e1,e2] = top2Elements(summary.counts);
-      const yinYang = STEM_YINYANG[dayStem] ? `일간 ${dayStem}(${STEM_YINYANG[dayStem]})` : "일간 정보";
-      const mainEl = e1[1] === 0 ? "오행 분포 부족" : `강한 오행: ${e1[0]}(${e1[1]})`;
-      const subEl = e2[1] === 0 ? "" : `보조 오행: ${e2[0]}(${e2[1]})`;
-      const yyText = `음/양: 음 ${summary.yy["음"]} · 양 ${summary.yy["양"]}`;
+    // 십신(십성)은 일간을 기준으로 관계를 분류하는 체계 :contentReference[oaicite:2]{index=2}
+    function tenGod(dayStem, otherStem){
+      const dEl = STEM_ELEMENT[dayStem];
+      const oEl = STEM_ELEMENT[otherStem];
+      const dYY = STEM_YY[dayStem];
+      const oYY = STEM_YY[otherStem];
+      if(!dEl || !oEl || !dYY || !oYY) return "";
 
-      [yinYang, mainEl, subEl, yyText].filter(Boolean).forEach(t=>{
-        const b = document.createElement("div");
-        b.className = "badge";
-        b.textContent = t;
-        badgesEl.appendChild(b);
-      });
+      const sameYY = dYY === oYY;
+
+      // 같은 오행
+      if (dEl === oEl) return sameYY ? "비견" : "겁재";
+
+      // 내가 생(생해주는) -> 식상
+      if (GEN[dEl] === oEl) return sameYY ? "식신" : "상관";
+
+      // 내가 극(극하는) -> 재성
+      if (KEN[dEl] === oEl) return sameYY ? "편재" : "정재";
+
+      // 나를 극(나를 극하는) -> 관성 (상극 역방향: other가 day를 극)
+      if (KEN[oEl] === dEl) return sameYY ? "편관" : "정관";
+
+      // 나를 생(나를 생해주는) -> 인성 (other가 day를 생)
+      if (GEN[oEl] === dEl) return sameYY ? "편인" : "정인";
+
+      return "";
     }
 
-    // ✅ 룰 기반 해석 템플릿 (MVP용: 제품 느낌 중심)
-    function interpret({yearPillar, monthPillar, dayPillar, hourPillar, gender}){
+    function countTenGods(dayStem, stems){
+      const out = {
+        "비견":0,"겁재":0,"식신":0,"상관":0,"정재":0,"편재":0,"정관":0,"편관":0,"정인":0,"편인":0
+      };
+      for (const s of stems){
+        const tg = tenGod(dayStem, s);
+        if (tg) out[tg]++;
+      }
+      return out;
+    }
+
+    function formatTop3(counts){
+      const arr = topEntries(counts).filter(([,v])=>v>0).slice(0,3);
+      if(!arr.length) return "분포 정보 부족";
+      return arr.map(([k,v])=>`${k} ${v}`).join(" · ");
+    }
+
+    function chip(text){
+      const c = document.createElement("div");
+      c.className = "chip";
+      c.textContent = text;
+      chipsEl.appendChild(c);
+    }
+
+    // ====== 해석(풍부하게) ======
+    // 오행/음양 + 일간 + 십신 분포를 “제품형 문장”으로 길게 출력
+    function interpret({ yearPillar, monthPillar, dayPillar, hourPillar, gender, timeUnknown }){
+      const pillars = [yearPillar, monthPillar, dayPillar, hourPillar].filter(Boolean);
       const day = splitPillar(dayPillar);
-      const summary = summarizeElements([yearPillar, monthPillar, dayPillar, hourPillar].filter(Boolean));
-      const dayEl = STEM_ELEMENT[day.stem] || "미상";
-      const dayYY = STEM_YINYANG[day.stem] || "미상";
+      const dStem = day.stem;
+      const dEl = STEM_ELEMENT[dStem] || "미상";
+      const dYY = STEM_YY[dStem] || "미상";
 
-      const [topEl] = top2Elements(summary.counts);
-      const strongest = topEl[1] > 0 ? topEl[0] : "미상";
+      const sum = summarizeElements(pillars);
+      const topEl = topEntries(sum.counts)[0]; // [element, count]
+      const strongEl = topEl?.[1] ? topEl[0] : "미상";
+      const yyText = `음 ${sum.yy["음"]} · 양 ${sum.yy["양"]}`;
 
-      // 성향/성격
+      const stems = [splitPillar(yearPillar).stem, splitPillar(monthPillar).stem, splitPillar(dayPillar).stem, splitPillar(hourPillar).stem].filter(Boolean);
+      const tgCounts = countTenGods(dStem, stems.filter(s=>s && s !== dStem)); // 일간 제외하고 대략 분포
+      const tgTop = formatTop3(tgCounts);
+
+      // “균형” 힌트(간단): 가장 약한 오행 1~2개
+      const weak = topEntries(sum.counts).filter(([,v])=>v===0).map(([k])=>k);
+      const weakHint = weak.length ? `부족해 보이는 오행: ${weak.slice(0,2).join(", ")}` : "오행이 고르게 분포된 편";
+
+      const timeNote = timeUnknown
+        ? "※ 출생시간을 ‘모름’으로 선택해 시주(時柱) 없이 해석했습니다. 시간까지 알면 해석 정확도가 올라갑니다."
+        : "※ 출생시간을 반영해 시주(時柱)까지 포함해 해석했습니다.";
+
+      // 문장 다양화(살짝 AI 느낌)
+      const variants = {
+        open: [
+          "이 사주는 ‘기본 기질’이 뚜렷하고, 환경에 따라 강점이 더 크게 드러나는 타입으로 해석됩니다.",
+          "전체 구조를 보면 한쪽 에너지(오행)가 도드라져서, 장점이 빠르게 성과로 연결되는 편입니다.",
+          "핵심은 균형입니다. 강한 기운은 ‘무기’가 되기도 하지만 ‘피로’가 되기도 합니다."
+        ],
+        balance: [
+          "강한 기운을 ‘절제’가 아니라 ‘조율’로 쓰면, 장점이 오래갑니다.",
+          "좋은 운은 갑자기 오기보다, 내가 만든 루틴 위에 얹혀서 커집니다.",
+          "기운의 과부하는 관계/일에서 ‘속도’ 문제로 드러나는 경우가 많습니다."
+        ]
+      };
+      const pick = (arr)=> arr[Math.floor(Math.random()*arr.length)];
+
       const personality = `
-<strong>핵심 키워드</strong><br>
-- 일간 오행: <b>${dayEl}</b> / 일간 음양: <b>${dayYY}</b><br>
-- 전체적으로 가장 두드러진 오행: <b>${strongest}</b><br><br>
+      <h3>핵심 요약</h3>
+      <ul>
+        <li><b>일간(나의 중심):</b> ${dStem}(${dEl}, ${dYY})</li>
+        <li><b>가장 두드러진 오행:</b> ${strongEl}</li>
+        <li><b>음양 밸런스:</b> ${yyText}</li>
+        <li><b>십신(간단 분포):</b> ${tgTop}</li>
+      </ul>
+      <p class="small">${timeNote}</p>
 
-<strong>성향 요약</strong><br>
-- <b>${dayEl}</b> 기질은 “내 기준/방향성”이 분명해지면 추진력이 강해지는 타입으로 해석합니다.<br>
-- <b>${dayYY}</b> 성향은 의사결정 방식에서 드러납니다. 양이면 빠르게 결단·실행, 음이면 한 번 더 점검·정교화 쪽으로 기웁니다.<br><br>
+      <h3>성향/성격 해석</h3>
+      <p>${pick(variants.open)}</p>
+      <ul>
+        <li><b>${dEl}</b> 기질은 “내 기준과 방향”이 세워지면 추진력이 좋아지고, 기준이 흔들리면 에너지 소모가 커질 수 있습니다.</li>
+        <li><b>${dYY}</b> 성향은 의사결정 방식에 드러납니다. 양이면 ‘결단→실행’이 빠르고, 음이면 ‘검토→정교화’가 강합니다.</li>
+        <li><b>${strongEl}</b>이 강하면 해당 기질의 장점(몰입/속도/집중)이 뚜렷하지만, 과해지면 반대로 (조급/고집/과몰입)로 번질 수 있습니다.</li>
+      </ul>
 
-<strong>생활 팁(제품 느낌)</strong><br>
-- 강한 오행(${strongest})이 과해지면 장점이 ‘과몰입/고집/조급’으로 바뀌기 쉬우니, 균형 행동(루틴, 휴식, 피드백)을 의도적으로 넣는 게 좋습니다.
-`.trim();
+      <h3>균형 포인트</h3>
+      <ul>
+        <li>${weakHint}</li>
+        <li>${pick(variants.balance)}</li>
+        <li><b>추천 루틴:</b> “결정 1개 → 실행 1개 → 피드백 1개”를 하루/주 단위로 반복하면 강점이 안정적으로 쌓입니다.</li>
+      </ul>
+      `.trim();
 
-      // 직업운(아주 단순하지만 ‘제품’처럼)
       const career = `
-<strong>직업운 방향</strong><br>
-- 일간 오행(<b>${dayEl}</b>) 기준으로 “잘 맞는 업무 스타일”을 우선 추천합니다.<br><br>
+      <h3>직업운 요약</h3>
+      <ul>
+        <li><b>잘 맞는 환경:</b> 목표/성과가 명확하거나(프로젝트형), 기준·프로세스를 다듬어 개선하는 환경(운영/기획/관리)</li>
+        <li><b>강점이 나는 방식:</b> 한 번 기준을 잡으면 꾸준히 밀고 가는 힘 + 결과로 설득하는 타입</li>
+      </ul>
 
-<strong>추천 업무 스타일</strong><br>
-- 목표/성과가 명확한 환경(프로젝트형, KPI가 있는 역할)<br>
-- 반복 업무라도 기준과 프로세스를 정해 개선하는 역할(운영/기획/관리)<br><br>
+      <h3>일에서 강점이 터지는 포인트</h3>
+      <ul>
+        <li><b>오행 ${strongEl}</b> 성향은 ‘일을 당기는 힘’이 됩니다. 중요한 건 그 힘을 “일정/우선순위/문서”로 고정하는 것입니다.</li>
+        <li><b>십신 분포(${tgTop})</b>가 높게 뜨는 쪽은, 본인이 자연스럽게 편한 역할로 해석할 수 있습니다(예: 책임/관리 성향, 표현/성과 성향, 지원/학습 성향 등).</li>
+      </ul>
 
-<strong>커리어 조언</strong><br>
-- 강한 오행(${strongest}) 성향이 강하면 “혼자 밀어붙이기”로 성과가 나기도 하지만, 중장기적으로는 협업 설계(역할분담/문서화)가 커리어 안정성을 올립니다.
-`.trim();
+      <h3>주의할 점(실전)</h3>
+      <ul>
+        <li>성과를 빨리 내는 만큼, 피로가 쌓이면 “내 방식 고수”로 보일 수 있습니다. 보고/공유 타이밍을 조금 앞당기면 평판이 좋아집니다.</li>
+        <li>커리어는 “큰 결정 1번”보다 “작은 개선 20번”이 더 강합니다. 개선을 기록(체크리스트/메모)으로 남겨두세요.</li>
+      </ul>
 
-      // 연애·결혼운
+      <p class="small">참고: 십신은 일간을 기준으로 관계를 분류하는 체계(비견/겁재/식신/상관/정재/편재/정관/편관/정인/편인)로 설명됩니다. :contentReference[oaicite:3]{index=3}</p>
+      `.trim();
+
       const love = `
-<strong>연애/결혼운 포인트</strong><br>
-- 연애는 “상대와의 리듬”이 핵심입니다. 일간 ${dayYY} 성향은 감정 표현 방식에서 차이가 납니다.<br><br>
+      <h3>연애·결혼운 요약</h3>
+      <ul>
+        <li><b>관계의 핵심:</b> ‘리듬 조율’과 ‘대화 방식’</li>
+        <li><b>${dYY}</b> 성향은 표현 스타일을 좌우합니다(양: 직진/명확, 음: 섬세/맥락).</li>
+      </ul>
 
-<strong>잘 맞는 관계 패턴</strong><br>
-- 기준이 분명하되, 대화로 조율이 가능한 관계(약속/일정/가치관을 대화로 맞춰가는 타입)<br><br>
+      <h3>잘 맞는 관계 패턴</h3>
+      <ul>
+        <li><b>약속/기준을 대화로 맞추는 관계</b>가 안정적입니다(연락 빈도, 시간 사용, 경계/자유의 범위).</li>
+        <li><b>${strongEl}</b> 기질이 강하면 감정이 커질 때도 속도가 붙습니다. 이럴 때는 “결론보다 감정 확인”을 먼저 하면 갈등이 줄어듭니다.</li>
+      </ul>
 
-<strong>주의할 점</strong><br>
-- 강한 오행(${strongest})이 과하면 관계에서 ‘내 방식이 정답’이 되기 쉬워서, “상대의 관점으로 번역해보기(한 문장 요약 후 확인)”를 루틴으로 두면 안정적입니다.
-`.trim();
+      <h3>결혼/장기 관계에서의 팁</h3>
+      <ul>
+        <li>서로의 ‘피로 신호’를 미리 정의해두면 좋습니다(말투가 짧아질 때, 회피할 때 등).</li>
+        <li>갈등 시에는 “상대 말 한 문장으로 요약 → 맞는지 확인 → 내 의견” 순서로 가면 관계가 안정됩니다.</li>
+      </ul>
 
-      return { personality, career, love, summary, dayStem: day.stem };
+      <p class="small">${gender ? `선택 성별: ${gender === "M" ? "남" : "여"} (성별은 현재 MVP에서 문장 톤 조정에만 사용)` : "성별 미선택(해석은 중립 톤으로 출력)"} </p>
+      `.trim();
+
+      return { personality, career, love, sum, dStem, dEl, dYY, strongEl, tgCounts, timeUnknown };
     }
 
     function setPanel(key){
       tabs.forEach(t => t.classList.toggle("active", t.dataset.tab === key));
-      if(!lastInterpretation) return;
-      panel.innerHTML = lastInterpretation[key];
+      if(!state.interpretation) return;
+      panel.innerHTML = state.interpretation[key];
     }
+    tabs.forEach(t => t.addEventListener("click", ()=> setPanel(t.dataset.tab)));
 
-    tabs.forEach(t=>{
-      t.addEventListener("click", ()=> setPanel(t.dataset.tab));
-    });
-
-    document.getElementById("run").addEventListener("click", ()=>{
+    function resetAll(){
       msg.textContent = "";
-      const date = document.getElementById("date").value;
-      const time = document.getElementById("time").value;
-      const gender = document.getElementById("gender").value;
+      resultCard.style.display = "none";
+      interpretCard.style.display = "none";
+      chipsEl.innerHTML = "";
+      techNote.textContent = "";
+      state.interpretation = null;
+      setGender("");
+      applyTimeUnknown(false);
 
-      if(!date){
+      // 날짜는 오늘로
+      const now = new Date();
+      yearEl.value = String(now.getFullYear());
+      monthEl.value = String(now.getMonth()+1);
+      refreshDays(Number(yearEl.value), Number(monthEl.value), now.getDate());
+      updateDateMsg();
+
+      hourEl.value = "12";
+      minEl.value = "0";
+    }
+    resetBtn.addEventListener("click", resetAll);
+
+    // ====== Run ======
+    runBtn.addEventListener("click", ()=>{
+      msg.textContent = "";
+
+      const Y = Number(yearEl.value);
+      const M = Number(monthEl.value);
+      const D = Number(dayEl.value);
+
+      if(!Y || !M || !D){
         msg.innerHTML = '<span class="error">생년월일을 먼저 선택해 주세요.</span>';
         return;
       }
 
-      const [Y,M,D] = date.split("-").map(Number);
       let hour = undefined, minute = 0;
-
-      if(time){
-        const [hh, mm] = time.split(":").map(Number);
-        hour = hh; minute = mm;
+      if(!state.timeUnknown){
+        hour = Number(hourEl.value);
+        minute = Number(minEl.value);
       }
 
       try{
-        // 라이브러리: calculateSaju(년,월,일,시?,분?,옵션?)
+        // longitude/time correction은 라이브러리 옵션(기본적으로 일정 보정이 적용될 수 있음)
         const r = calculateSaju(Y, M, D, hour, minute, { longitude: 127, applyTimeCorrection: true });
 
-        // 결과 표
+        // 표 출력
         document.getElementById("y").textContent = r.yearPillar ?? "-";
         document.getElementById("m").textContent = r.monthPillar ?? "-";
         document.getElementById("d").textContent = r.dayPillar ?? "-";
-        document.getElementById("h").textContent = r.hourPillar ?? (hour === undefined ? "미입력" : "-");
+        document.getElementById("h").textContent = state.timeUnknown ? "모름" : (r.hourPillar ?? "-");
+
+        // 칩(오행/음양/일간/십신 요약)
+        chipsEl.innerHTML = "";
+        const sum = summarizeElements([r.yearPillar, r.monthPillar, r.dayPillar, r.hourPillar].filter(Boolean));
+        const topEl = topEntries(sum.counts)[0];
+        const dayStem = splitPillar(r.dayPillar).stem;
+
+        chip(`일간: ${dayStem}(${STEM_ELEMENT[dayStem] ?? "?"}, ${STEM_YY[dayStem] ?? "?"})`);
+        chip(`강한 오행: ${topEl?.[1] ? `${topEl[0]}(${topEl[1]})` : "정보 부족"}`);
+        chip(`음양: 음 ${sum.yy["음"]} · 양 ${sum.yy["양"]}`);
+
+        // 십신(간단) 분포
+        const stems = [splitPillar(r.yearPillar).stem, splitPillar(r.monthPillar).stem, splitPillar(r.dayPillar).stem, splitPillar(r.hourPillar).stem].filter(Boolean);
+        const tgCounts = countTenGods(dayStem, stems.filter(s=>s && s !== dayStem));
+        chip(`십신: ${formatTop3(tgCounts)}`);
 
         resultCard.style.display = "";
         interpretCard.style.display = "";
 
-        // 해석
-        const out = interpret({
+        // 해석 생성
+        state.interpretation = interpret({
           yearPillar: r.yearPillar,
           monthPillar: r.monthPillar,
           dayPillar: r.dayPillar,
-          hourPillar: r.hourPillar ?? "",
-          gender
+          hourPillar: state.timeUnknown ? "" : (r.hourPillar ?? ""),
+          gender: state.gender,
+          timeUnknown: state.timeUnknown
         });
-        lastInterpretation = out;
 
-        // 배지(오행/음양 요약)
-        buildBadges(out.summary, out.dayStem);
-
-        // 기본 탭 표시
+        // 기본 탭
         setPanel("personality");
 
-        msg.textContent = r.isTimeCorrected
-          ? `시간 보정 적용됨: 입력 ${hour ?? "미입력"}:${String(minute).padStart(2,"0")} → 보정 ${r.correctedTime?.hour ?? "?"}:${String(r.correctedTime?.minute ?? 0).padStart(2,"0")}`
-          : "시간 보정 미적용";
+        // 기술 노트
+        techNote.textContent =
+          state.timeUnknown
+            ? "출생시간을 모름으로 선택해 시주 없이 해석했습니다."
+            : (r.isTimeCorrected ? "시간 보정이 적용될 수 있습니다(라이브러리 옵션)." : "시간 보정 미적용");
+
       }catch(e){
-        msg.innerHTML = `<span class="error">계산에 실패했습니다. 날짜/시간 형식을 확인해 주세요.</span>`;
+        msg.innerHTML = `<span class="error">계산에 실패했습니다. 선택 값이 올바른지 확인해 주세요.</span>`;
         console.error(e);
       }
     });
+
+    // ====== Init ======
+    initPickers();
+    resetAll();
+
+    // 참고: 오행/음양 및 십신 개념은 명리학에서 널리 쓰이는 기본 프레임입니다. :contentReference[oaicite:4]{index=4}
   </script>
 </body>
 </html>
