@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>사주 MVP2</title>
+  <style>
+    * { box-sizing: border-box; }
+    body{
+      margin:0; padding:20px;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: #0b1020; color: #fff;
+    }
+    .wrap{ width:min(920px, 100%); margin:0 auto; display:grid; gap:14px; }
+    .card{
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      border-radius: 18px;
+      padding: 16px;
+    }
+    h1{ margin:0 0 6px; font-size: clamp(22px, 4.5vw, 32px); }
+    .sub{ margin:0; color: rgba(255,255,255,.7); font-size: 14px; }
+
+    .grid{
+      display:grid; gap:10px;
+      grid-template-columns: 1fr 1fr;
+    }
+    @media (max-width: 720px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    label{ display:block; font-size: 13px; color: rgba(255,255,255,.75); margin-bottom:6px; }
+    input, select{
+      width:100%;
+      padding:12px 12px;
+      border-radius: 12px;
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(0,0,0,.25);
+      color:#fff;
+      outline:none;
+    }
+
+    button{
+      width:100%;
+      padding:12px 14px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.18);
+      background: linear-gradient(135deg, rgba(255,120,170,.55), rgba(120,210,255,.45));
+      color:#fff;
+      font-weight: 800;
+      cursor:pointer;
+    }
+
+    table{
+      width:100%;
+      border-collapse: collapse;
+      overflow:hidden;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.14);
+    }
+    th, td{
+      padding: 12px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      text-align:center;
+    }
+    th{ background: rgba(255,255,255,.06); color: rgba(255,255,255,.86); }
+    td{ color: rgba(255,255,255,.92); }
+
+    .badges{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+    .badge{
+      padding:8px 10px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      font-size: 13px;
+      color: rgba(255,255,255,.88);
+    }
+
+    .tabs{ display:flex; gap:8px; flex-wrap:wrap; }
+    .tab{
+      padding:10px 12px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      cursor:pointer;
+      font-weight:700;
+      color: rgba(255,255,255,.85);
+    }
+    .tab.active{
+      background: rgba(255,255,255,.16);
+      border-color: rgba(255,255,255,.22);
+    }
+    .panel{ margin-top: 12px; line-height: 1.6; color: rgba(255,255,255,.9); }
+    .muted{ color: rgba(255,255,255,.7); font-size: 13px; }
+    .error{ color: #ffb4b4; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>사주 MVP2</h1>
+      <p class="sub">요금 0원(브라우저에서 계산 + 룰 기반 해석). 기본 성향/직업운/연애·결혼운 제공</p>
+    </div>
+
+    <div class="card">
+      <div class="grid">
+        <div>
+          <label>생년월일(양력)</label>
+          <input id="date" type="date" />
+        </div>
+        <div>
+          <label>출생시간(선택)</label>
+          <input id="time" type="time" />
+        </div>
+        <div>
+          <label>성별(선택)</label>
+          <select id="gender">
+            <option value="">선택 안 함</option>
+            <option value="F">여</option>
+            <option value="M">남</option>
+          </select>
+        </div>
+        <div style="display:grid; align-content:end;">
+          <button id="run">사주 계산 & 해석</button>
+        </div>
+      </div>
+      <p id="msg" class="muted" style="margin:10px 0 0;"></p>
+    </div>
+
+    <div class="card" id="resultCard" style="display:none;">
+      <h2 style="margin:0 0 10px; font-size:18px;">사주 4기둥</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>년주</th><th>월주</th><th>일주</th><th>시주</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td id="y"></td><td id="m"></td><td id="d"></td><td id="h"></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="badges" id="badges"></div>
+      <p class="muted" style="margin:10px 0 0;">
+        * 해석은 “AI 호출”이 아니라, 오행/음양/일간 중심의 룰 기반 템플릿으로 출력됩니다(요금 0원 유지 목적).
+      </p>
+    </div>
+
+    <div class="card" id="interpretCard" style="display:none;">
+      <div class="tabs">
+        <div class="tab active" data-tab="personality">기본 성향/성격</div>
+        <div class="tab" data-tab="career">직업운</div>
+        <div class="tab" data-tab="love">연애·결혼운</div>
+      </div>
+      <div class="panel" id="panel"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    // ✅ 사주 계산 라이브러리 (MIT) - 브라우저에서 불러오기
+    // manseryeok-js는 calculateSaju API를 제공하고, README에 MIT 라이선스를 표기합니다. :contentReference[oaicite:1]{index=1}
+    import { calculateSaju } from "https://esm.sh/@fullstackfamily/manseryeok@1.0.5";
+
+    const msg = document.getElementById("msg");
+    const resultCard = document.getElementById("resultCard");
+    const interpretCard = document.getElementById("interpretCard");
+    const panel = document.getElementById("panel");
+    const badgesEl = document.getElementById("badges");
+
+    const tabs = Array.from(document.querySelectorAll(".tab"));
+    let lastInterpretation = null;
+
+    const STEM_ELEMENT = {
+      "갑":"목","을":"목","병":"화","정":"화","무":"토","기":"토","경":"금","신":"금","임":"수","계":"수"
+    };
+    const STEM_YINYANG = {
+      "갑":"양","을":"음","병":"양","정":"음","무":"양","기":"음","경":"양","신":"음","임":"양","계":"음"
+    };
+    const BRANCH_ELEMENT = {
+      "자":"수","축":"토","인":"목","묘":"목","진":"토","사":"화","오":"화","미":"토","신":"금","유":"금","술":"토","해":"수"
+    };
+    const BRANCH_YINYANG = {
+      "자":"양","축":"음","인":"양","묘":"음","진":"양","사":"음","오":"양","미":"음","신":"양","유":"음","술":"양","해":"음"
+    };
+
+    function splitPillar(p){
+      // 예: '경오' -> { stem:'경', branch:'오' }
+      return { stem: p?.[0] ?? "", branch: p?.[1] ?? "" };
+    }
+
+    function summarizeElements(pillars){
+      const counts = { "목":0,"화":0,"토":0,"금":0,"수":0 };
+      const yy = { "양":0,"음":0 };
+
+      for (const p of pillars){
+        const {stem, branch} = splitPillar(p);
+        if (STEM_ELEMENT[stem]) counts[STEM_ELEMENT[stem]]++;
+        if (BRANCH_ELEMENT[branch]) counts[BRANCH_ELEMENT[branch]]++;
+        if (STEM_YINYANG[stem]) yy[STEM_YINYANG[stem]]++;
+        if (BRANCH_YINYANG[branch]) yy[BRANCH_YINYANG[branch]]++;
+      }
+      return { counts, yy };
+    }
+
+    function top2Elements(counts){
+      return Object.entries(counts)
+        .sort((a,b)=>b[1]-a[1])
+        .slice(0,2);
+    }
+
+    function buildBadges(summary, dayStem){
+      badgesEl.innerHTML = "";
+      const [e1,e2] = top2Elements(summary.counts);
+      const yinYang = STEM_YINYANG[dayStem] ? `일간 ${dayStem}(${STEM_YINYANG[dayStem]})` : "일간 정보";
+      const mainEl = e1[1] === 0 ? "오행 분포 부족" : `강한 오행: ${e1[0]}(${e1[1]})`;
+      const subEl = e2[1] === 0 ? "" : `보조 오행: ${e2[0]}(${e2[1]})`;
+      const yyText = `음/양: 음 ${summary.yy["음"]} · 양 ${summary.yy["양"]}`;
+
+      [yinYang, mainEl, subEl, yyText].filter(Boolean).forEach(t=>{
+        const b = document.createElement("div");
+        b.className = "badge";
+        b.textContent = t;
+        badgesEl.appendChild(b);
+      });
+    }
+
+    // ✅ 룰 기반 해석 템플릿 (MVP용: 제품 느낌 중심)
+    function interpret({yearPillar, monthPillar, dayPillar, hourPillar, gender}){
+      const day = splitPillar(dayPillar);
+      const summary = summarizeElements([yearPillar, monthPillar, dayPillar, hourPillar].filter(Boolean));
+      const dayEl = STEM_ELEMENT[day.stem] || "미상";
+      const dayYY = STEM_YINYANG[day.stem] || "미상";
+
+      const [topEl] = top2Elements(summary.counts);
+      const strongest = topEl[1] > 0 ? topEl[0] : "미상";
+
+      // 성향/성격
+      const personality = `
+<strong>핵심 키워드</strong><br>
+- 일간 오행: <b>${dayEl}</b> / 일간 음양: <b>${dayYY}</b><br>
+- 전체적으로 가장 두드러진 오행: <b>${strongest}</b><br><br>
+
+<strong>성향 요약</strong><br>
+- <b>${dayEl}</b> 기질은 “내 기준/방향성”이 분명해지면 추진력이 강해지는 타입으로 해석합니다.<br>
+- <b>${dayYY}</b> 성향은 의사결정 방식에서 드러납니다. 양이면 빠르게 결단·실행, 음이면 한 번 더 점검·정교화 쪽으로 기웁니다.<br><br>
+
+<strong>생활 팁(제품 느낌)</strong><br>
+- 강한 오행(${strongest})이 과해지면 장점이 ‘과몰입/고집/조급’으로 바뀌기 쉬우니, 균형 행동(루틴, 휴식, 피드백)을 의도적으로 넣는 게 좋습니다.
+`.trim();
+
+      // 직업운(아주 단순하지만 ‘제품’처럼)
+      const career = `
+<strong>직업운 방향</strong><br>
+- 일간 오행(<b>${dayEl}</b>) 기준으로 “잘 맞는 업무 스타일”을 우선 추천합니다.<br><br>
+
+<strong>추천 업무 스타일</strong><br>
+- 목표/성과가 명확한 환경(프로젝트형, KPI가 있는 역할)<br>
+- 반복 업무라도 기준과 프로세스를 정해 개선하는 역할(운영/기획/관리)<br><br>
+
+<strong>커리어 조언</strong><br>
+- 강한 오행(${strongest}) 성향이 강하면 “혼자 밀어붙이기”로 성과가 나기도 하지만, 중장기적으로는 협업 설계(역할분담/문서화)가 커리어 안정성을 올립니다.
+`.trim();
+
+      // 연애·결혼운
+      const love = `
+<strong>연애/결혼운 포인트</strong><br>
+- 연애는 “상대와의 리듬”이 핵심입니다. 일간 ${dayYY} 성향은 감정 표현 방식에서 차이가 납니다.<br><br>
+
+<strong>잘 맞는 관계 패턴</strong><br>
+- 기준이 분명하되, 대화로 조율이 가능한 관계(약속/일정/가치관을 대화로 맞춰가는 타입)<br><br>
+
+<strong>주의할 점</strong><br>
+- 강한 오행(${strongest})이 과하면 관계에서 ‘내 방식이 정답’이 되기 쉬워서, “상대의 관점으로 번역해보기(한 문장 요약 후 확인)”를 루틴으로 두면 안정적입니다.
+`.trim();
+
+      return { personality, career, love, summary, dayStem: day.stem };
+    }
+
+    function setPanel(key){
+      tabs.forEach(t => t.classList.toggle("active", t.dataset.tab === key));
+      if(!lastInterpretation) return;
+      panel.innerHTML = lastInterpretation[key];
+    }
+
+    tabs.forEach(t=>{
+      t.addEventListener("click", ()=> setPanel(t.dataset.tab));
+    });
+
+    document.getElementById("run").addEventListener("click", ()=>{
+      msg.textContent = "";
+      const date = document.getElementById("date").value;
+      const time = document.getElementById("time").value;
+      const gender = document.getElementById("gender").value;
+
+      if(!date){
+        msg.innerHTML = '<span class="error">생년월일을 먼저 선택해 주세요.</span>';
+        return;
+      }
+
+      const [Y,M,D] = date.split("-").map(Number);
+      let hour = undefined, minute = 0;
+
+      if(time){
+        const [hh, mm] = time.split(":").map(Number);
+        hour = hh; minute = mm;
+      }
+
+      try{
+        // 라이브러리: calculateSaju(년,월,일,시?,분?,옵션?)
+        const r = calculateSaju(Y, M, D, hour, minute, { longitude: 127, applyTimeCorrection: true });
+
+        // 결과 표
+        document.getElementById("y").textContent = r.yearPillar ?? "-";
+        document.getElementById("m").textContent = r.monthPillar ?? "-";
+        document.getElementById("d").textContent = r.dayPillar ?? "-";
+        document.getElementById("h").textContent = r.hourPillar ?? (hour === undefined ? "미입력" : "-");
+
+        resultCard.style.display = "";
+        interpretCard.style.display = "";
+
+        // 해석
+        const out = interpret({
+          yearPillar: r.yearPillar,
+          monthPillar: r.monthPillar,
+          dayPillar: r.dayPillar,
+          hourPillar: r.hourPillar ?? "",
+          gender
+        });
+        lastInterpretation = out;
+
+        // 배지(오행/음양 요약)
+        buildBadges(out.summary, out.dayStem);
+
+        // 기본 탭 표시
+        setPanel("personality");
+
+        msg.textContent = r.isTimeCorrected
+          ? `시간 보정 적용됨: 입력 ${hour ?? "미입력"}:${String(minute).padStart(2,"0")} → 보정 ${r.correctedTime?.hour ?? "?"}:${String(r.correctedTime?.minute ?? 0).padStart(2,"0")}`
+          : "시간 보정 미적용";
+      }catch(e){
+        msg.innerHTML = `<span class="error">계산에 실패했습니다. 날짜/시간 형식을 확인해 주세요.</span>`;
+        console.error(e);
+      }
+    });
+  </script>
+</body>
+</html>
