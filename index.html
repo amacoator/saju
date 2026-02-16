@@ -578,117 +578,168 @@
 
     // ====== 해석(풍부하게) ======
     // 오행/음양 + 일간 + 십신 분포를 “제품형 문장”으로 길게 출력
-    function interpret({ yearPillar, monthPillar, dayPillar, hourPillar, gender, timeUnknown }){
-      const pillars = [yearPillar, monthPillar, dayPillar, hourPillar].filter(Boolean);
-      const day = splitPillar(dayPillar);
-      const dStem = day.stem;
-      const dEl = STEM_ELEMENT[dStem] || "미상";
-      const dYY = STEM_YY[dStem] || "미상";
+  function interpret({ yearPillar, monthPillar, dayPillar, hourPillar, gender, timeUnknown }){
+  const pillars = [yearPillar, monthPillar, dayPillar, hourPillar].filter(Boolean);
+  const day = splitPillar(dayPillar);
+  const dStem = day.stem;
+  const dEl = STEM_ELEMENT[dStem] || "미상";
+  const dYY = STEM_YY[dStem] || "미상";
 
-      const sum = summarizeElements(pillars);
-      const topEl = topEntries(sum.counts)[0]; // [element, count]
-      const strongEl = topEl?.[1] ? topEl[0] : "미상";
-      const yyText = `음 ${sum.yy["음"]} · 양 ${sum.yy["양"]}`;
+  const sum = summarizeElements(pillars);
+  const [strongEl, strongCnt] = topEntries(sum.counts)[0] ?? ["미상", 0];
+  const yyText = `음 ${sum.yy["음"]} · 양 ${sum.yy["양"]}`;
 
-      const stems = [splitPillar(yearPillar).stem, splitPillar(monthPillar).stem, splitPillar(dayPillar).stem, splitPillar(hourPillar).stem].filter(Boolean);
-      const tgCounts = countTenGods(dStem, stems.filter(s=>s && s !== dStem)); // 일간 제외하고 대략 분포
-      const tgTop = formatTop3(tgCounts);
+  const stems = [
+    splitPillar(yearPillar).stem,
+    splitPillar(monthPillar).stem,
+    splitPillar(dayPillar).stem,
+    splitPillar(hourPillar).stem
+  ].filter(Boolean);
 
-      // “균형” 힌트(간단): 가장 약한 오행 1~2개
-      const weak = topEntries(sum.counts).filter(([,v])=>v===0).map(([k])=>k);
-      const weakHint = weak.length ? `부족해 보이는 오행: ${weak.slice(0,2).join(", ")}` : "오행이 고르게 분포된 편";
+  const tgCounts = countTenGods(dStem, stems.filter(s=>s && s !== dStem));
+  const tgTop = formatTop3(tgCounts);
 
-      const timeNote = timeUnknown
-        ? "※ 출생시간을 ‘모름’으로 선택해 시주(時柱) 없이 해석했습니다. 시간까지 알면 해석 정확도가 올라갑니다."
-        : "※ 출생시간을 반영해 시주(時柱)까지 포함해 해석했습니다.";
+  const weak = topEntries(sum.counts).filter(([,v])=>v===0).map(([k])=>k);
+  const weakHint = weak.length ? `부족해 보이는 오행: ${weak.slice(0,2).join(", ")}` : "오행이 비교적 고르게 분포된 편";
 
-      // 문장 다양화(살짝 AI 느낌)
-      const variants = {
-        open: [
-          "이 사주는 ‘기본 기질’이 뚜렷하고, 환경에 따라 강점이 더 크게 드러나는 타입으로 해석됩니다.",
-          "전체 구조를 보면 한쪽 에너지(오행)가 도드라져서, 장점이 빠르게 성과로 연결되는 편입니다.",
-          "핵심은 균형입니다. 강한 기운은 ‘무기’가 되기도 하지만 ‘피로’가 되기도 합니다."
-        ],
-        balance: [
-          "강한 기운을 ‘절제’가 아니라 ‘조율’로 쓰면, 장점이 오래갑니다.",
-          "좋은 운은 갑자기 오기보다, 내가 만든 루틴 위에 얹혀서 커집니다.",
-          "기운의 과부하는 관계/일에서 ‘속도’ 문제로 드러나는 경우가 많습니다."
-        ]
-      };
-      const pick = (arr)=> arr[Math.floor(Math.random()*arr.length)];
+  const timeNote = timeUnknown
+    ? "출생시간을 ‘모름’으로 선택해 시주(時柱) 없이 해석했습니다. 시간까지 알면 해석의 초점(대인관계/말투/리듬)이 더 선명해질 수 있습니다."
+    : "출생시간을 반영해 시주(時柱)까지 포함해 해석했습니다.";
 
-      const personality = `
-      <h3>핵심 요약</h3>
-      <ul>
-        <li><b>일간(나의 중심):</b> ${dStem}(${dEl}, ${dYY})</li>
-        <li><b>가장 두드러진 오행:</b> ${strongEl}</li>
-        <li><b>음양 밸런스:</b> ${yyText}</li>
-        <li><b>십신(간단 분포):</b> ${tgTop}</li>
-      </ul>
-      <p class="small">${timeNote}</p>
+  // ✅ 용어 풀이(결과에 나온 것들을 사용자가 이해할 수 있게)
+  const termExplain = `
+  <h3>이번 결과 용어 풀이</h3>
+  <ul>
+    <li><b>년주/월주/일주/시주</b>: 사주를 4개의 기둥(태어난 해·달·날·시간)으로 나눈 것입니다. 각각 ‘환경/기본 배경’, ‘사회적 흐름/초기 습관’, ‘나의 중심(일간)’, ‘디테일한 습관/리듬’처럼 참고합니다.</li>
+    <li><b>일간</b>: 일주의 ‘천간’으로, 사주에서 “나(자기 기질의 중심)”를 뜻합니다. 이번 결과는 <b>${dStem}(${dEl}, ${dYY})</b>입니다.</li>
+    <li><b>오행</b>: 목·화·토·금·수 다섯 가지 에너지 균형입니다. 이번 결과에서 가장 두드러진 오행은 <b>${strongEl}</b>(${strongCnt})로 보입니다.</li>
+    <li><b>음양</b>: 에너지 성향의 방향입니다. 양은 ‘외향/속도/직진’, 음은 ‘내향/정교/축적’으로 이해하면 쉽습니다. 이번 결과는 <b>${yyText}</b>입니다.</li>
+    <li><b>십신</b>: 일간 기준으로 다른 천간과의 관계를 분류한 역할(비견/겁재/식신/상관/정재/편재/정관/편관/정인/편인)입니다. 이번 결과의 간단 분포는 <b>${tgTop}</b>입니다.</li>
+  </ul>
+  <p class="small">${timeNote}</p>
+  `.trim();
 
-      <h3>성향/성격 해석</h3>
-      <p>${pick(variants.open)}</p>
-      <ul>
-        <li><b>${dEl}</b> 기질은 “내 기준과 방향”이 세워지면 추진력이 좋아지고, 기준이 흔들리면 에너지 소모가 커질 수 있습니다.</li>
-        <li><b>${dYY}</b> 성향은 의사결정 방식에 드러납니다. 양이면 ‘결단→실행’이 빠르고, 음이면 ‘검토→정교화’가 강합니다.</li>
-        <li><b>${strongEl}</b>이 강하면 해당 기질의 장점(몰입/속도/집중)이 뚜렷하지만, 과해지면 반대로 (조급/고집/과몰입)로 번질 수 있습니다.</li>
-      </ul>
+  // ✅ 전망 문장: “단정” 대신 “경향/가능성 + 행동”으로
+  function outlookTemplate(topic){
+    const strongLine =
+      strongEl === "미상" ? "현재 정보만으로는 한쪽 오행이 과하게 치우쳤다고 보긴 어렵습니다."
+      : `강한 오행(${strongEl}) 성향이 뚜렷하면 장점이 빨리 성과로 연결되지만, 과하면 피로/조급/고집으로 보일 수 있습니다.`;
 
-      <h3>균형 포인트</h3>
-      <ul>
-        <li>${weakHint}</li>
-        <li>${pick(variants.balance)}</li>
-        <li><b>추천 루틴:</b> “결정 1개 → 실행 1개 → 피드백 1개”를 하루/주 단위로 반복하면 강점이 안정적으로 쌓입니다.</li>
-      </ul>
-      `.trim();
+    const balanceLine =
+      weak.length ? `${weakHint} → 이 쪽을 ‘습관’으로 채우면 전체 흐름이 안정됩니다.` : "균형이 비교적 좋아서 ‘루틴 유지’가 곧 실력입니다.";
 
-      const career = `
-      <h3>직업운 요약</h3>
-      <ul>
-        <li><b>잘 맞는 환경:</b> 목표/성과가 명확하거나(프로젝트형), 기준·프로세스를 다듬어 개선하는 환경(운영/기획/관리)</li>
-        <li><b>강점이 나는 방식:</b> 한 번 기준을 잡으면 꾸준히 밀고 가는 힘 + 결과로 설득하는 타입</li>
-      </ul>
+    const near = `
+    <h3>가까운 흐름(전망)</h3>
+    <ul>
+      <li>${strongLine}</li>
+      <li>${balanceLine}</li>
+      <li><b>핵심 포인트:</b> “결정→실행→피드백” 사이클을 짧게 가져가면 운의 체감이 커집니다.</li>
+    </ul>`;
 
-      <h3>일에서 강점이 터지는 포인트</h3>
-      <ul>
-        <li><b>오행 ${strongEl}</b> 성향은 ‘일을 당기는 힘’이 됩니다. 중요한 건 그 힘을 “일정/우선순위/문서”로 고정하는 것입니다.</li>
-        <li><b>십신 분포(${tgTop})</b>가 높게 뜨는 쪽은, 본인이 자연스럽게 편한 역할로 해석할 수 있습니다(예: 책임/관리 성향, 표현/성과 성향, 지원/학습 성향 등).</li>
-      </ul>
+    const mid = `
+    <h3>중기 흐름(전망)</h3>
+    <ul>
+      <li><b>좋아지는 패턴:</b> 기준과 루틴이 쌓일수록 결과가 따라오는 타입으로 해석됩니다.</li>
+      <li><b>흔한 변수:</b> 에너지 과부하(과몰입/속도)로 관계·업무에서 소진이 생기면 흐름이 흔들릴 수 있습니다.</li>
+      <li><b>추천 전략:</b> ${topic}에서 “과한 부분을 줄이기”보다 “균형을 만드는 장치(일정·메모·대화 규칙)”를 두는 게 효과적입니다.</li>
+    </ul>`;
 
-      <h3>주의할 점(실전)</h3>
-      <ul>
-        <li>성과를 빨리 내는 만큼, 피로가 쌓이면 “내 방식 고수”로 보일 수 있습니다. 보고/공유 타이밍을 조금 앞당기면 평판이 좋아집니다.</li>
-        <li>커리어는 “큰 결정 1번”보다 “작은 개선 20번”이 더 강합니다. 개선을 기록(체크리스트/메모)으로 남겨두세요.</li>
-      </ul>
+    return (near + mid).trim();
+  }
 
-      <p class="small">참고: 십신은 일간을 기준으로 관계를 분류하는 체계(비견/겁재/식신/상관/정재/편재/정관/편관/정인/편인)로 설명됩니다. :contentReference[oaicite:3]{index=3}</p>
-      `.trim();
+  const action3 = (a,b,c)=>`
+    <h3>오늘의 실천 3가지</h3>
+    <ul>
+      <li>${a}</li>
+      <li>${b}</li>
+      <li>${c}</li>
+    </ul>
+  `.trim();
 
-      const love = `
-      <h3>연애·결혼운 요약</h3>
-      <ul>
-        <li><b>관계의 핵심:</b> ‘리듬 조율’과 ‘대화 방식’</li>
-        <li><b>${dYY}</b> 성향은 표현 스타일을 좌우합니다(양: 직진/명확, 음: 섬세/맥락).</li>
-      </ul>
+  // ====== 성향/성격 ======
+  const personality = `
+  <h3>핵심 요약</h3>
+  <ul>
+    <li><b>일간(나의 중심):</b> ${dStem}(${dEl}, ${dYY})</li>
+    <li><b>강한 오행:</b> ${strongEl}${strongCnt ? `(${strongCnt})` : ""}</li>
+    <li><b>음양:</b> ${yyText}</li>
+    <li><b>십신(간단):</b> ${tgTop}</li>
+  </ul>
 
-      <h3>잘 맞는 관계 패턴</h3>
-      <ul>
-        <li><b>약속/기준을 대화로 맞추는 관계</b>가 안정적입니다(연락 빈도, 시간 사용, 경계/자유의 범위).</li>
-        <li><b>${strongEl}</b> 기질이 강하면 감정이 커질 때도 속도가 붙습니다. 이럴 때는 “결론보다 감정 확인”을 먼저 하면 갈등이 줄어듭니다.</li>
-      </ul>
+  ${termExplain}
 
-      <h3>결혼/장기 관계에서의 팁</h3>
-      <ul>
-        <li>서로의 ‘피로 신호’를 미리 정의해두면 좋습니다(말투가 짧아질 때, 회피할 때 등).</li>
-        <li>갈등 시에는 “상대 말 한 문장으로 요약 → 맞는지 확인 → 내 의견” 순서로 가면 관계가 안정됩니다.</li>
-      </ul>
+  <h3>성향/성격 해석</h3>
+  <ul>
+    <li><b>${dEl}</b> 기질은 “내 기준/방향”이 잡히면 추진력이 강해지고, 기준이 흐트러지면 에너지가 분산되기 쉽습니다.</li>
+    <li><b>${dYY}</b> 성향은 의사결정 방식에 드러납니다. 양이면 빠른 결단, 음이면 정교한 검토에 강점이 있습니다.</li>
+    <li><b>${strongEl}</b>이 강하면 해당 기질의 장점(몰입/속도/집중)이 도드라지지만, 과하면 반대로 (조급/고집/과몰입)으로 보일 수 있습니다.</li>
+  </ul>
 
-      <p class="small">${gender ? `선택 성별: ${gender === "M" ? "남" : "여"} (성별은 현재 MVP에서 문장 톤 조정에만 사용)` : "성별 미선택(해석은 중립 톤으로 출력)"} </p>
-      `.trim();
+  ${outlookTemplate("자기관리")}
 
-      return { personality, career, love, sum, dStem, dEl, dYY, strongEl, tgCounts, timeUnknown };
-    }
+  ${action3(
+    "오늘 결정할 일 1개를 ‘기준 한 줄’로 써보기(왜 하는지).",
+    "하루 루틴에 ‘멈춤 10분(정리/산책/호흡)’을 넣어 에너지 과부하를 줄이기.",
+    "일/관계에서 ‘내 말 한 줄 요약 → 상대 확인’ 습관 만들기."
+  )}
+  `.trim();
+
+  // ====== 직업운 ======
+  const career = `
+  <h3>직업운 핵심</h3>
+  <ul>
+    <li><b>잘 맞는 업무:</b> 기준이 명확한 목표형 업무(프로젝트/KPI) 또는 프로세스를 다듬는 운영·기획·관리형 업무</li>
+    <li><b>강점이 나는 방식:</b> 한 번 기준을 잡고 꾸준히 밀어붙이는 힘 + 결과로 설득</li>
+    <li><b>주의 포인트:</b> 속도가 붙을수록 검토/공유가 늦어지면 리스크가 커질 수 있음</li>
+  </ul>
+
+  ${termExplain}
+
+  <h3>직업운 해석(제품형)</h3>
+  <ul>
+    <li><b>강한 오행(${strongEl})</b>은 “일을 당기는 엔진”이 될 수 있습니다. 이 엔진을 <b>문서/일정/체크리스트</b>로 고정하면 성과가 안정화됩니다.</li>
+    <li><b>십신(${tgTop})</b>은 업무 성향 힌트입니다. 예를 들어 ‘식상’ 쪽은 표현/성과, ‘관성’은 책임/규칙, ‘인성’은 학습/지원 성향으로 풀이할 수 있습니다.</li>
+  </ul>
+
+  ${outlookTemplate("커리어")}
+
+  ${action3(
+    "이번 달 목표 1개를 ‘측정 가능’하게 바꾸기(예: 3건 완료/1회 개선).",
+    "작업 전 체크 3개(목표/리스크/공유타이밍) 적고 시작하기.",
+    "주 1회 ‘내가 만든 개선 1개’ 기록해서 누적하기."
+  )}
+  `.trim();
+
+  // ====== 연애·결혼운 ======
+  const love = `
+  <h3>연애·결혼운 핵심</h3>
+  <ul>
+    <li><b>관계의 키:</b> 리듬 조율(속도/표현/경계)</li>
+    <li><b>표현 스타일 힌트:</b> ${dYY} 성향은 말의 템포와 감정 표현 방식에 영향을 줍니다.</li>
+    <li><b>흔한 변수:</b> 강한 오행(${strongEl})이 과해지면 ‘내 방식이 정답’이 되기 쉬움</li>
+  </ul>
+
+  ${termExplain}
+
+  <h3>연애·결혼운 해석</h3>
+  <ul>
+    <li>잘 맞는 관계는 “약속/기준을 대화로 맞추는 관계”입니다(연락 빈도, 시간 사용, 가치관).</li>
+    <li>감정이 커질 때는 결론을 내기 전에 “상대 감정 확인 → 내 감정 설명” 순서로 가면 안정적입니다.</li>
+  </ul>
+
+  ${outlookTemplate("관계")}
+
+  ${action3(
+    "갈등이 생기면 ‘상대 말 1문장 요약 → 맞는지 확인’부터 하기.",
+    "연애/결혼에서 중요하게 보는 기준 3개를 적고, 대화 가능한 문장으로 바꾸기.",
+    "서로 피로 신호(말수/표정/회피)를 정해두고, 쉬는 규칙 만들기."
+  )}
+
+  <p class="small">${gender ? `선택 성별: ${gender === "M" ? "남" : "여"} (현재 MVP는 문장 톤 조정에만 사용)` : "성별 미선택(중립 톤)"} </p>
+  `.trim();
+
+  return { personality, career, love, sum, dStem, dEl, dYY, strongEl, tgCounts, timeUnknown };
+}
 
     function setPanel(key){
       tabs.forEach(t => t.classList.toggle("active", t.dataset.tab === key));
@@ -799,3 +850,4 @@
   </script>
 </body>
 </html>
+
